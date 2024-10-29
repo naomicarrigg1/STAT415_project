@@ -1,0 +1,68 @@
+---
+title: "Stat-415/615 Project - Tidying Data"
+author: "Naomi Carrigg, Conor Gillingham, Emily Randolph, Connor Rempe"
+date: "10/31/24"
+output:
+  pdf_document: 
+    toc: no
+    toc_depth: 2
+    number_sections: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r}
+# library(dplyr)
+# library(plotly)
+# library(ggplot2)
+# library(tidyverse)
+```
+
+```{r}
+## cleaning/tidying the data
+AirQuality_data_raw <- read_csv("Air_Quality_History.csv")
+AirQuality_data <- AirQuality_data_raw %>%
+  mutate(across(starts_with("PARAMETER_NAME"), 
+                ~ str_replace_all(., " ", "_") %>%
+                  str_to_lower() %>%
+                  str_remove_all("[^a-z_]"))) %>%
+  mutate(SITE_NAME = case_match(SITE_NUM, 
+                                41 ~ "River_Terrace_NE", 
+                                43 ~ "McMillan_NW", 
+                                50 ~ "Takoma_Recreation_NW",
+                                51 ~ "Anacostia_Freeway_NE", 
+                                53 ~ "Greenleaf_Recreation_SW", 
+                                42 ~ "Hains_Point_SW")) %>%
+  select(-c(LONGITUDE, LATITUDE, STATE_CODE, STATE_NAME, COUNTY_NAME, POC, DATUM, OBJECTID, UNITS_OF_MEASURE, METHOD_CODE, METHOD_NAME)) %>%
+  mutate(DATETIME_LOCAL = as.POSIXct(DATETIME_LOCAL, tz = "UTC"),
+         Year = year(DATETIME_LOCAL),
+         Month = month(DATETIME_LOCAL, label = TRUE, abbr = TRUE) %>% as.character()) %>%
+  mutate(Season = case_when(
+    Month %in% c("Dec", "Jan", "Feb") ~ 'Winter',
+    Month %in% c("Mar", "Apr", "May") ~ 'Spring',
+    Month %in% c("Jun", "Jul", "Aug") ~ 'Summer',
+    TRUE ~ 'Fall'
+  ))
+
+# Grouping and summarizing
+AirQuality_data <- AirQuality_data %>%
+  group_by(Season, SITE_NAME, Month, Year, PARAMETER_NAME) %>%
+  summarize(ARITHMETIC_MEAN = mean(ARITHMETIC_MEAN, na.rm = TRUE), .groups = 'drop')
+
+# Pivot the data
+AirQuality_data <- AirQuality_data %>%
+  pivot_wider(names_from = PARAMETER_NAME, values_from = ARITHMETIC_MEAN)
+AirQuality_original_data <- AirQuality_data
+
+# One-hot encoding
+AirQuality_data <- fastDummies::dummy_cols(AirQuality_data, select_columns = c("SITE_NAME", "Season"), remove_selected_columns = TRUE)
+```
+
+```{r}
+head(AirQuality_data)
+```
+
+
