@@ -55,7 +55,7 @@ AirQuality_data_aqi <- AirQuality_data %>%
 AirQuality_data_means <- AirQuality_data_means %>%
   pivot_wider(names_from = PARAMETER_NAME, values_from = ARITHMETIC_MEAN)
 
-AirQuality_data_aqi <- AirQuality_data_aqi %>% 
+AirQuality_data_aqi <- AirQuality_data_aqi %>%
   pivot_wider(names_from = PARAMETER_NAME, values_from = AQI)
 ```
 
@@ -66,6 +66,13 @@ head(AirQuality_data_aqi)
 tail(AirQuality_data_aqi)
 ```
 
+
+```{r}
+#Columns with at least 1 non-NA AQI
+AirQuality_data_aqi_reduced <- subset(AirQuality_data_aqi, select = c("Season", "SITE_NAME","Month", "Year", "carbon_monoxide","nitrogen_dioxide_no", "pm__local_conditions", "ozone", "pm_total_um_stp", "sulfur_dioxide"))
+```
+
+
 ```{r}
 AirQuality_data_means %>% 
   ggplot(aes(x = barometric_pressure, y = carbon_monoxide)) +
@@ -75,13 +82,65 @@ AirQuality_data_means %>%
 ```
 
 
+```{r}
+# Get Descriptive Statistics for numeric colmns in means
+descriptive_stats_means <- data.frame()
+
+for (col in names(AirQuality_data_means)) {
+  if (is.numeric(AirQuality_data_means[[col]])) {
+    working_means <- AirQuality_data_means %>%
+      summarise(
+        variable = col,
+        mean = mean(.data[[col]], na.rm = TRUE),
+        median = median(.data[[col]], na.rm = TRUE),
+        sd = sd(.data[[col]], na.rm = TRUE),
+        min = min(.data[[col]], na.rm = TRUE),
+        max = max(.data[[col]], na.rm = TRUE),
+        n = sum(!is.na(.data[[col]]))
+      )
+        descriptive_stats_means <- bind_rows(descriptive_stats_means, working_means)
+  }
+}
+
+print(descriptive_stats_means)
+```
 
 
+```{r}
+# Descriptive stats for AQI
+descriptive_stats_aqi <- data.frame()
+
+for (col in names(AirQuality_data_aqi_reduced)) {
+  if (is.numeric(AirQuality_data_aqi_reduced[[col]])) {
+    working_means_aqi <- AirQuality_data_aqi_reduced %>%
+      summarise(
+        variable = col,
+        mean = mean(.data[[col]], na.rm = TRUE),
+        median = median(.data[[col]], na.rm = TRUE),
+        sd = sd(.data[[col]], na.rm = TRUE),
+        min = min(.data[[col]], na.rm = TRUE),
+        max = max(.data[[col]], na.rm = TRUE),
+        n = sum(!is.na(.data[[col]]))
+      )
+        descriptive_stats_aqi <- bind_rows(descriptive_stats_aqi, working_means_aqi)
+  }
+}
+
+print(descriptive_stats_aqi)
+```
+
+columns_of_interest <- c("barometric_pressure", "carbon_monoxide", "nitrogen_dioxide_no","outdoor_temperature", "pm__local_conditions","relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant")
 
 
+```{r}
+# Create a list of histograms for the specified columns
+ggplot(AirQuality_data_means, aes(x = barometric_pressure)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black", na.rm = TRUE) +
+  labs(title = paste("Histogram of Barometric pressure"), x = "Pressure", y = "Frequency") +
+  theme_minimal()
 
 
-
+```
 
 
 
