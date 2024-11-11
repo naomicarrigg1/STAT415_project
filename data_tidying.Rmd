@@ -69,12 +69,17 @@ tail(AirQuality_data_aqi)
 
 ```{r}
 #Columns with at least 1 non-NA AQI
-AirQuality_data_aqi_reduced <- subset(AirQuality_data_aqi, select = c("Season", "SITE_NAME","Month", "Year", "carbon_monoxide","nitrogen_dioxide_no", "pm__local_conditions", "ozone", "pm_total_um_stp", "sulfur_dioxide"))
+AirQuality_data_aqi_reduced <- subset(AirQuality_data_aqi, select = c("Season", "SITE_NAME","Month", "Year", "carbon_monoxide","nitrogen_dioxide_no", "pm__local_conditions", "ozone", "pm_total_um_stp","sulfur_dioxide"))
 ```
 
+```{r}
+# means df with columns of interest
+reduced_data <- AirQuality_data_means %>% 
+  subset(select = c("Season", "SITE_NAME","Month", "Year", "barometric_pressure", "carbon_monoxide", "nitrogen_dioxide_no","outdoor_temperature", "pm__local_conditions","relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant"))
+```
 
 ```{r}
-AirQuality_data_means %>% 
+reduced_data %>% 
   ggplot(aes(x = barometric_pressure, y = carbon_monoxide)) +
   geom_point() +
   geom_smooth(method = 'lm', se = FALSE, color = 'red') +
@@ -131,15 +136,23 @@ print(descriptive_stats_aqi)
 
 columns_of_interest <- c("barometric_pressure", "carbon_monoxide", "nitrogen_dioxide_no","outdoor_temperature", "pm__local_conditions","relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant")
 
-
 ```{r}
 # Create a list of histograms for the specified columns
-ggplot(AirQuality_data_means, aes(x = barometric_pressure)) +
-  geom_histogram(binwidth = 1, fill = "lightblue", color = "black", na.rm = TRUE) +
-  labs(title = paste("Histogram of Barometric pressure"), x = "Pressure", y = "Frequency") +
-  theme_minimal()
+graph <- function(pollutant, name) {
+  ggplot(reduced_data, aes(x = pollutant)) +
+    geom_histogram(binwidth = 1, fill = 'lightblue', color = 'black', na.rm = TRUE) +
+    labs(title = paste0('Histogram of ', name), x = name, y = 'Frequency') +
+    theme_minimal()
+}
 
-
+graph(reduced_data$barometric_pressure, 'Barometric Pressure')
+graph(reduced_data$carbon_monoxide, 'Carbon Monoxide')
+graph(reduced_data$nitrogen_dioxide_no, 'Nitrogen Dioxide')
+graph(reduced_data$outdoor_temperature, 'Temperature')
+graph(reduced_data$pm__local_conditions, 'Particulate Matter')
+graph(reduced_data$relative_humidity, 'Relatice Humidity')
+graph(reduced_data$wind_direction__resultant, 'Wind Direction')
+graph(reduced_data$wind_speed__resultant, 'Wind Speed')
 ```
 
 
