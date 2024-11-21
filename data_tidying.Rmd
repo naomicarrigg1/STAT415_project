@@ -149,7 +149,7 @@ graph(reduced_data$carbon_monoxide, 'Carbon Monoxide')
 graph(reduced_data$nitrogen_dioxide_no, 'Nitrogen Dioxide')
 graph(reduced_data$outdoor_temperature, 'Temperature')
 graph(reduced_data$pm__local_conditions, 'Particulate Matter')
-graph(reduced_data$relative_humidity, 'Relatice Humidity')
+graph(reduced_data$relative_humidity, 'Relative Humidity')
 graph(reduced_data$wind_direction__resultant, 'Wind Direction')
 graph(reduced_data$wind_speed__resultant, 'Wind Speed')
 ```
