@@ -134,7 +134,6 @@ for (col in names(AirQuality_data_aqi_reduced)) {
 print(descriptive_stats_aqi)
 ```
 
-columns_of_interest <- c("barometric_pressure", "carbon_monoxide", "nitrogen_dioxide_no","outdoor_temperature", "pm__local_conditions","relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant")
 
 ```{r}
 # Create a list of histograms for the specified columns
@@ -155,7 +154,108 @@ graph(reduced_data$wind_direction__resultant, 'Wind Direction')
 graph(reduced_data$wind_speed__resultant, 'Wind Speed')
 ```
 
+# Model 1: Predicting Carbon Monoxide with Nitrogen Dioxide and season using AQI
+```{r}
+model_1_data <- na.omit(subset(AirQuality_data_aqi_reduced, select = c("Season", "Month", "Year", "SITE_NAME", "nitrogen_dioxide_no", "carbon_monoxide")))
+model_1 <- lm(carbon_monoxide ~ Season + nitrogen_dioxide_no, data = model_1_data)
+summary(model_1)
+```
 
 
 
+# Hypothesis test (Can Nitrogen be dropped from the model)
+```{r}
+reduced <- lm(carbon_monoxide ~ Season, data = model_1_data)
+anova(reduced, model_1)
+```
+Null is that the coefficient is zero, at significance level of 0.05 we reject the null and say that carbon monoxide cannot be dropped from the model. Suggests that two pollutants do occur in tandem
 
+# Hypothesis test for Overall Significance
+
+```{r}
+null <- lm(carbon_monoxide ~ 1 , data = model_1_data)
+anova(null,model_1)
+```
+Model is significant overall.
+
+# Model 2: Predicting Nitrogen Dioxide AQI using all other predictors. Trying to see if relationship exists in the opposit direction and whether location has an effect.
+```{r}
+model_2_data <- na.omit(subset(AirQuality_data_aqi_reduced, select = c("Season", "Month", "Year", "SITE_NAME", "nitrogen_dioxide_no")))
+
+model_2_red<- lm(nitrogen_dioxide_no ~ SITE_NAME + Season + Month + Year, data = model_1_data)
+
+model_2_full <- lm(nitrogen_dioxide_no ~ SITE_NAME + Season + Month + Year + carbon_monoxide, data = model_1_data)
+
+anova(model_2_red, model_2_full)
+```
+Carbon monoxide can be dropped from the model when we include season, month, year, and Site_Name. Now we perform best subset selection on this model
+
+```{r}
+step(model_2_red, direction = "both")
+```
+Only site name and month are retained, using Anacostia NE and April as baselines
+
+```{r}
+model_fin <- lm(nitrogen_dioxide_no ~ SITE_NAME + Month, data = model_2_data)
+summary(model_fin)
+```
+
+
+```{r}
+plot(model_fin$resi)
+```
+
+
+```{r}
+qqnorm(model_fin$resi)
+qqline(model_fin$resi)
+```
+
+
+Residual plots indicate that linear model is appropriate.
+
+```{r}
+library(lmtest)
+```
+
+```{r}
+dwtest(model_fin)
+```
+Caveat, DW test reveals autocorrelation in this mod
+
+# Model 3: Does weather have an affect?
+
+```{r}
+model_3_data <- na.omit(subset(reduced_data, select = c("Season", "Month", "Year", "SITE_NAME", "nitrogen_dioxide_no", "carbon_monoxide","outdoor_temperature", "relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant")))
+
+dim(model_3_data)
+```
+
+```{r}
+model_3 <- lm(nitrogen_dioxide_no ~ ., data = model_3_data)
+summary(model_3)
+```
+
+```{r}
+step(model_3, direction = "both")
+```
+```{r}
+model_3_step <- lm(formula = nitrogen_dioxide_no ~ Month + Year + SITE_NAME + 
+    carbon_monoxide + outdoor_temperature + relative_humidity + 
+    wind_direction__resultant + wind_speed__resultant, data = model_3_data)
+summary(model_3_step)
+```
+Anova test for significance of weather predictors
+```{r}
+model_3_red <- lm(formula = nitrogen_dioxide_no ~ Month + Year + SITE_NAME + 
+    carbon_monoxide, data = model_3_data)
+
+anova(model_3_red, model_3_step)
+```
+All weather variables cannot be dropped from the model, weather has some impact on concentration. 
+
+# Overall findings
+1. Concentration of other pollutants doesn't have a significant effect when Location and Month are included in the model
+2. In general, winter and fall months tend to have higher AQI 
+3. Season and Site location are strong predictors, suggests disparities accross DC. NE worse off than NW. 
+4. It appears that weather has an affect
