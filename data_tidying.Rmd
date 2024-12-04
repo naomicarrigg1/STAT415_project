@@ -1,5 +1,5 @@
 ---
-title: "Stat-415/615 Project - Tidying Data"
+title: "Stat-415/615 Project - Tidying Data & EDA"
 author: "Naomi Carrigg, Conor Gillingham, Emily Randolph, Connor Rempe"
 date: "10/31/24"
 output:
@@ -154,14 +154,13 @@ graph(reduced_data$wind_direction__resultant, 'Wind Direction')
 graph(reduced_data$wind_speed__resultant, 'Wind Speed')
 ```
 
+# Model Fitting
 # Model 1: Predicting Carbon Monoxide with Nitrogen Dioxide and season using AQI
 ```{r}
 model_1_data <- na.omit(subset(AirQuality_data_aqi_reduced, select = c("Season", "Month", "Year", "SITE_NAME", "nitrogen_dioxide_no", "carbon_monoxide")))
 model_1 <- lm(carbon_monoxide ~ Season + nitrogen_dioxide_no, data = model_1_data)
 summary(model_1)
 ```
-
-
 
 # Hypothesis test (Can Nitrogen be dropped from the model)
 ```{r}
@@ -177,24 +176,31 @@ null <- lm(carbon_monoxide ~ 1 , data = model_1_data)
 anova(null,model_1)
 ```
 Model is significant overall.
+\newpage
 
-# Model 2: Predicting Nitrogen Dioxide AQI using all other predictors. Trying to see if relationship exists in the opposit direction and whether location has an effect.
+# Model 2: Predicting Nitrogen Dioxide AQI using all other predictors. Trying to see if relationship exists in the opposite direction and whether location has an effect.
 ```{r}
 model_2_data <- na.omit(subset(AirQuality_data_aqi_reduced, select = c("Season", "Month", "Year", "SITE_NAME", "nitrogen_dioxide_no")))
 
-model_2_red<- lm(nitrogen_dioxide_no ~ SITE_NAME + Season + Month + Year, data = model_1_data)
+model_2_red <- lm(nitrogen_dioxide_no ~ SITE_NAME + Season + Month + Year, data = model_1_data)
 
 model_2_full <- lm(nitrogen_dioxide_no ~ SITE_NAME + Season + Month + Year + carbon_monoxide, data = model_1_data)
 
 anova(model_2_red, model_2_full)
 ```
-Carbon monoxide can be dropped from the model when we include season, month, year, and Site_Name. Now we perform best subset selection on this model
+\newpage
+```{r}
+summary(model_2_full)
+summary(model_2_red)
+```
 
+Carbon monoxide can be dropped from the model when we include season, month, year, and Site_Name. Now we perform best subset selection on this model
+\newpage
 ```{r}
 step(model_2_red, direction = "both")
 ```
 Only site name and month are retained, using Anacostia NE and April as baselines
-
+\newpage
 ```{r}
 model_fin <- lm(nitrogen_dioxide_no ~ SITE_NAME + Month, data = model_2_data)
 summary(model_fin)
@@ -223,6 +229,37 @@ dwtest(model_fin)
 ```
 Caveat, DW test reveals autocorrelation in this mod
 
+```{r}
+#rstudent(model_fin) # studentized deleted residuals
+# dffits(model_fin) # DF fits
+# dfbetas(model_fin) # standardized DF betas
+# cooks.distance(model_fin) # cook's dist
+# hatvalues(model_fin) # leverage
+```
+
+```{r}
+n <- 119 # sample size
+p <- 2 # 5 parameters
+
+par(mfrow = c(2, 2))
+plot(rstudent(model_fin), ylab = 'Studentized Deleted Residual')
+abline(qt(1-0.1/(2*n), df = n - p - 1), 0, lty = 2)
+abline(qt(0.1/(2*n), df = n - p - 1), 0, lty = 2)
+
+plot(dffits(model_fin), ylab = 'DF Fits')
+abline(1, 0, lty = 2)
+abline(1, 0, lty = 2)
+
+plot(cooks.distance(model_fin), ylab = "Cook's Distance")
+abline(qf(0.5, df1 = 5, df2 = n - p), 0, lty = 2)
+
+plot(hatvalues(model_fin), ylab = 'Leverege')
+abline(2*p/n, 0, lty = 2)
+
+library(car)
+vif(model_fin)
+```
+
 # Model 3: Does weather have an affect?
 
 ```{r}
@@ -231,20 +268,24 @@ model_3_data <- na.omit(subset(reduced_data, select = c("Season", "Month", "Year
 dim(model_3_data)
 ```
 
+\newpage
 ```{r}
 model_3 <- lm(nitrogen_dioxide_no ~ ., data = model_3_data)
 summary(model_3)
 ```
 
+\newpage
 ```{r}
 step(model_3, direction = "both")
 ```
+\newpage
 ```{r}
 model_3_step <- lm(formula = nitrogen_dioxide_no ~ Month + Year + SITE_NAME + 
     carbon_monoxide + outdoor_temperature + relative_humidity + 
     wind_direction__resultant + wind_speed__resultant, data = model_3_data)
 summary(model_3_step)
 ```
+\newpage
 Anova test for significance of weather predictors
 ```{r}
 model_3_red <- lm(formula = nitrogen_dioxide_no ~ Month + Year + SITE_NAME + 
