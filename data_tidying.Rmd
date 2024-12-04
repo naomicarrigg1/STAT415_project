@@ -297,6 +297,31 @@ anova(model_3_red, model_3_step)
 ```
 All weather variables cannot be dropped from the model, weather has some impact on concentration. 
 
+```{r}
+library(glmnet)
+x_var <- data.matrix(model_3_data[, c("Season", "Month", "Year", "SITE_NAME", "carbon_monoxide","outdoor_temperature", "relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant")])
+y_var <- as.numeric(model_3_data[[ "nitrogen_dioxide_no"]])
+lambda_seq <- 10^seq(2, -1, by = -0.1)
+
+ridge <- glmnet(x_var, y_var, alpha = 0)
+
+ridge_cv <- cv.glmnet(x_var, y_var, alpha = 0)
+best_lambda <- ridge_cv$lambda.min
+
+ridge_out <- glmnet(x_var, y_var, alpha = 0, lambda = best_lambda)
+summary(ridge_out)
+coef(ridge_out)
+
+plot(ridge_cv)
+
+y_predicted <- predict(ridge_out, s = best_lambda, newx = x_var)
+sst <- sum((y_var - mean(y_var))^2)
+sse <- sum((y_predicted - y_var)^2)
+rsq <- 1 - sse/sst
+rsq
+```
+
+
 # Overall findings
 1. Concentration of other pollutants doesn't have a significant effect when Location and Month are included in the model
 2. In general, winter and fall months tend to have higher AQI 
