@@ -258,6 +258,8 @@ abline(2*p/n, 0, lty = 2)
 
 library(car)
 vif(model_fin)
+
+influenceIndexPlot(model_fin)
 ```
 
 # Model 3: Does weather have an affect?
