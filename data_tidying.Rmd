@@ -299,18 +299,21 @@ All weather variables cannot be dropped from the model, weather has some impact 
 
 ```{r}
 library(glmnet)
-x_var <- data.matrix(model_3_data[, c("Season", "Month", "Year", "SITE_NAME", "carbon_monoxide","outdoor_temperature", "relative_humidity"	, "wind_direction__resultant", "wind_speed__resultant")])
+x_var <- model.matrix(model_3_step)
 y_var <- as.numeric(model_3_data[[ "nitrogen_dioxide_no"]])
 lambda_seq <- 10^seq(2, -1, by = -0.1)
 
-ridge <- glmnet(x_var, y_var, alpha = 0)
+ridge <- glmnet(x_var, y_var, alpha = 0, lambda = seq(0, 10, 0.01))
+plot(ridge)
 
-ridge_cv <- cv.glmnet(x_var, y_var, alpha = 0)
+ridge_cv <- cv.glmnet(x_var, y_var, alpha = 0, lambda = seq(0, 10, 0.01))
 best_lambda <- ridge_cv$lambda.min
 
 ridge_out <- glmnet(x_var, y_var, alpha = 0, lambda = best_lambda)
 summary(ridge_out)
 coef(ridge_out)
+
+predict(ridge, ridge_cv$lambda.min, newx = x_var, type = 'coefficients')
 
 plot(ridge_cv)
 
@@ -319,6 +322,8 @@ sst <- sum((y_var - mean(y_var))^2)
 sse <- sum((y_predicted - y_var)^2)
 rsq <- 1 - sse/sst
 rsq
+
+best_lambda
 ```
 
 
